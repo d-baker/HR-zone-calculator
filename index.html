@@ -1,0 +1,362 @@
+<html>
+  <head>
+    <title></title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Lato&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: Lato, sans-serif;
+            line-height: 1.25rem;
+        }
+        h1 {
+            text-align: center;
+            margin: 30px 0;
+        }
+        code {
+            font-family: monospace;
+            padding: 0 5px;
+            border-radius: 5px;
+            background: lightgrey;
+        }
+        form {
+            width: 800px;
+            position: relative;
+            margin: 0 auto;
+            display: block;
+        }
+        label, legend {
+            font-weight: bold;
+        }
+        label {
+            margin-top: 15px;
+            display: block;
+        }
+        .radioButtonLabel {
+            font-weight: normal;
+            display: inline;
+            margin: 0;
+        }
+        aside {
+            margin: 10px 0;
+            font-style: italic;
+            font-size: 1rem;
+        }
+        input[type="submit"] {
+            width: 100%;
+            height: 4rem;
+            color: white;
+            background: grey;
+            border: 1px solid grey;
+            border-radius: 3px;
+            font-size: 2rem;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        input[type="number"] {
+            padding: 5px;
+            margin: 5px 0 15px 0;
+            width: 100%;
+        }
+
+        select {
+            padding: 5px;
+            margin: 5px 0 15px 0;
+            width: 100%;
+            border: 1px solid grey;
+            border-radius: 3px;
+            background: white;
+            color: black;
+        }
+
+        fieldset {
+            margin: 20px 0;
+        }
+
+        input[type="submit"]:hover {
+            background: darkgrey;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 800px;
+            display: block;
+            margin: 0px auto 30px auto;
+        }
+        td, th {
+            border: 1px solid grey;
+            text-align: left;
+            padding: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+
+    <script src="jquery-3.4.1.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const adjustments = {"50%": 0.5, "60%": 0.6};
+
+            const algorithms = {
+                0:  function (age, adjustment) {
+                    return (220 - age) * adjustment;
+
+                    },
+                1:  function (age, adjustment) { 
+                    return (206 - (age * 0.88)) * adjustment;
+                    }
+            };
+
+            /*
+             * algorithm: int (0, 1)
+             * age: int
+            */
+            function calculateAT(algorithm, age, adjustment) {
+                return algorithm(age, adjustment);
+            }
+
+            // RHR + 10%
+            function calculateRestingUpperBound(restingHR) {
+                return restingHR + (restingHR / 10);
+            }
+
+            // RHR + 20%
+            function calculateActiveRecoveryUpperBound(restingHR) {
+                return restingHR + (restingHR / 5);
+            }
+
+            function getZoneForGarminGraph(zone, restingHR, anaerobicThreshold) {
+                var lowerBound, upperBound = 0;
+
+                switch(zone) {
+                    case 1:
+                        lowerBound = restingHR;
+                        upperBound = calculateRestingUpperBound(restingHR);
+                        break;
+                    case 2:
+                        lowerBound = calculateRestingUpperBound(restingHR);
+                        upperBound = lowerBound +1;
+                        break;
+                    case 3:
+                        lowerBound = calculateRestingUpperBound(restingHR) + 1;
+                        upperBound = calculateActiveRecoveryUpperBound(restingHR);
+                        break;
+                    case 4:
+                        lowerBound = calculateActiveRecoveryUpperBound(restingHR);
+                        upperBound = calculateActiveRecoveryUpperBound(restingHR) + 1;
+                        break;
+                    case 5:
+                        lowerBound = calculateActiveRecoveryUpperBound(restingHR) + 1;
+                        upperBound = anaerobicThreshold;
+                        break;
+                    default:
+                        throw "Unexpected zone number";
+                }
+
+                return [Math.round(lowerBound), Math.round(upperBound)];
+            }
+
+            function getZoneForGarminActivity(zone, restingHR, anaerobicThreshold) {
+                var lowerBound, upperBound = 0;
+
+                switch(zone) {
+                    case 1:
+                        lowerBound = "Your lowest observed HR";
+                        upperBound = restingHR;
+                        break;
+                    case 2:
+                        lowerBound = restingHR;
+                        upperBound = calculateRestingUpperBound(restingHR) +1;
+                        break;
+                    case 3:
+                        lowerBound = calculateRestingUpperBound(restingHR) + 1;
+                        upperBound = calculateActiveRecoveryUpperBound(restingHR);
+                        break;
+                    case 4:
+                        lowerBound = calculateActiveRecoveryUpperBound(restingHR);
+                        upperBound = anaerobicThreshold;
+                        break;
+                    case 5:
+                        lowerBound = anaerobicThreshold;
+                        upperBound = "Your highest observed HR";
+                        break;
+                    default:
+                        throw "Unexpected zone number";
+                }
+
+                return [
+                    isNaN(lowerBound) ? lowerBound : Math.round(lowerBound),
+                    isNaN(upperBound) ? upperBound : Math.round(upperBound)
+                ];
+            }
+
+            function getBasicZone(zone, restingHR, anaerobicThreshold) {
+                var lowerBound, upperBound = 0;
+
+                switch(zone) {
+                    case 1:
+                        lowerBound = restingHR;
+                        upperBound = calculateRestingUpperBound(restingHR);
+                        break;
+                    case 2:
+                        lowerBound = calculateRestingUpperBound(restingHR) + 1;
+                        upperBound = calculateActiveRecoveryUpperBound(restingHR);
+                        break;
+                    case 3:
+                        lowerBound = calculateActiveRecoveryUpperBound(restingHR) + 1;
+                        upperBound = anaerobicThreshold;
+                        break;
+                    default:
+                        throw "Unexpected zone number";
+                }
+
+                return [Math.round(lowerBound), Math.round(upperBound)];
+            }
+
+
+            function calculateZones(zoneType, algorithm, adjustment, age, restingHR) {
+                var anaerobicThreshold = calculateAT(algorithm, age, adjustment);
+
+                switch(zoneType) {
+                    // Garmin graph setup
+                    case "garminGraph":
+                        return {
+                            "Zone 1": getZoneForGarminGraph(1, restingHR, anaerobicThreshold),
+                            "Zone 2": getZoneForGarminGraph(2, restingHR, anaerobicThreshold),
+                            "Zone 3": getZoneForGarminGraph(3, restingHR, anaerobicThreshold),
+                            "Zone 4": getZoneForGarminGraph(4, restingHR, anaerobicThreshold),
+                            "Zone 5": getZoneForGarminGraph(5, restingHR, anaerobicThreshold)
+                        }
+                        break;
+                    // Garmin activity set up
+                    case "garminActivity":
+                        return {
+                            "Zone 1": getZoneForGarminActivity(1, restingHR, anaerobicThreshold),
+                            "Zone 2": getZoneForGarminActivity(2, restingHR, anaerobicThreshold),
+                            "Zone 3": getZoneForGarminActivity(3, restingHR, anaerobicThreshold),
+                            "Zone 4": getZoneForGarminActivity(4, restingHR, anaerobicThreshold),
+                            "Zone 5": getZoneForGarminActivity(5, restingHR, anaerobicThreshold)
+                        }
+                        break;
+                    // Zones based on pacing guidelines
+                    default:
+                        return {
+                            "Rest": getBasicZone(1, restingHR, anaerobicThreshold),
+                            "Active recovery": getBasicZone(2, restingHR, anaerobicThreshold),
+                            "Exertion": getBasicZone(3, restingHR, anaerobicThreshold)
+                        }
+                }
+            }
+
+            $("form").submit(function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(e.target);
+                var algorithmInput = formData.get('algorithm');
+                var adjustmentInput = formData.get('adjustment');
+                var age = parseInt(formData.get('age'));
+                var restingHR = parseInt(formData.get('rhr'));
+                var zoneType = formData.get('zoneType');
+
+                var algorithm = algorithms[algorithmInput];
+                var adjustment = adjustments[adjustmentInput];
+
+                var zones = calculateZones(zoneType, algorithm, adjustment, age, restingHR);
+
+                createTable(zones);
+            });
+
+            function createTable(zones) {
+                $table = $("#zones tbody");
+                $table.empty();
+                $.each(zones, function(zoneName, values) {
+                    $table.append(
+                        $('<tr>').append(
+                            $('<th>').text(zoneName)).append(
+                            $('<td>').text(values[0])).append(
+                            $('<td>').text(values[1]))
+                        )
+                });
+                $("#zones").removeClass("hidden");
+                $('html, body').animate({
+                    scrollTop: ($('#zones').offset().top)
+                },500);
+            }
+
+        });
+    </script>
+  </head>
+  <body>
+       <h1>
+           Heart rate zone calculator for ME/CFS
+       </h1>
+       <form>
+           <fieldset>
+               <div>
+                    <label for="age">Enter your age*</label>
+                    <input type="number" id="age" name="age" required></input>
+               </div>
+
+               <div>
+                    <label for="rhr">Enter your resting heart rate (RHR)*</label>
+                    <aside>Measure your RHR when you are not experiencing post-exertional malaise.</aside>
+                    <input type="number" id="rhr" name="rhr" required></input>
+               </div>
+           </fieldset>
+
+           <fieldset>
+               <div>
+               <label for="algorithm">Choose the formula for calculating anaerobic threshold (AT)</label>
+               <aside>The "traditional" formula, <code>220 - age</code>, is the most widely used. The "modern" formula, <code>206 - (age * 0.88)</code>, may be more accurate for some people. Experiment to find the values that work best for you.</aside>
+               <select id="algorithm" name="algorithm">
+                   <option value="0" selected>Traditional</option>
+                   <option value="1">Modern</option>
+               </select>
+               </div>
+
+               <div>
+               <label for="adjustment">Choose how much to adjust AT for ME/CFS</label>
+               <aside>It's estimated that ME/CFS approximately halves the body's energy production, but this may depend on the severity of the illness. Experiment to find the values that work best for you.</aside>
+               <select id="adjustment" name="adjustment">
+                   <option value="60%" selected>60% of healthy AT</option>
+                   <option value="50%">50% of healthy AT</option>
+               </select>
+               </div>
+           </fieldset>
+
+           <fieldset>
+                <legend>Choose zone format</legend>
+                <aside>Choose "Basic zones" to get your Resting, Active Recovery, and Exertion zones. Choose one of the other options if you want to set up HR zones in the Garmin Connect app.</aside>
+
+                <input type="radio" name="zoneType" value="basic" id="basicZoneType" checked> 
+                <label for="basicZoneType" class="radioButtonLabel">Basic zones</label>
+                <br/>
+
+                <input type="radio" name="zoneType" value="garminGraph" id="garminGraphZoneType">
+                <label for="garminGraphZoneType" class="radioButtonLabel">Zones for Garmin HR graph setup</label>
+                <br/>
+
+                <input type="radio" name="zoneType" value="garminActivity" id="garminActivityZoneType">
+                <label for="garminActivityZoneType" class="radioButtonLabel">Zones for Garmin activity setup
+           </fieldset>
+
+           <input type="submit" value="Calculate"></input>
+       </form>
+
+       <table id="zones" class="hidden">
+            <thead>
+               <tr>
+                   <td></td>
+                   <th>Lower bound</th>
+                   <th>Upper bound</th>
+               </tr>
+           </thead>
+           <tbody>
+           </tbody>
+       </table>
+
+  </body>
+</html>
