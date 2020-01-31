@@ -2,11 +2,11 @@ $(document).ready(function() {
     const adjustments = {"50%": 0.5, "60%": 0.6};
 
     const algorithms = {
-        0:  function (age, adjustment) {
+        "traditional":  function (age, adjustment) {
             return (220 - age) * adjustment;
 
             },
-        1:  function (age, adjustment) { 
+        "modern":  function (age, adjustment) { 
             return (206 - (age * 0.88)) * adjustment;
             }
     };
