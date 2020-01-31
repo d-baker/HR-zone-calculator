@@ -75,6 +75,7 @@ $(document).ready(function() {
         var zones = calculateZones(zoneType, algorithm, adjustment, age, restingHR);
 
         createTable(zones);
+        insertAT(calculateAT(algorithm, age, adjustment));
     });
 
     function calculateZones(zoneType, algorithm, adjustment, age, restingHR) {
@@ -110,8 +111,14 @@ $(document).ready(function() {
         });
         $("#zones").removeClass("hidden");
         $('html, body').animate({
-            scrollTop: ($('#zones').offset().top)
+            scrollTop: ($('#zones table').offset().top)
         },500);
+    }
+
+    function insertAT(anaerobicThreshold) {
+        $el = $("#anaerobicThreshold .value");
+        $el.text(Math.round(anaerobicThreshold));
+        $("#anaerobicThreshold").removeClass("hidden");
     }
 
 });

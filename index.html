@@ -66,17 +66,27 @@
            <input type="submit" value="Calculate"></input>
        </form>
 
-       <table id="zones" class="hidden">
-            <thead>
-               <tr>
-                   <td></td>
-                   <th>Min</th>
-                   <th>Max</th>
-               </tr>
-           </thead>
-           <tbody>
-           </tbody>
-       </table>
+       <div class="flex-container">
+       		<div id="zones" class="hidden">
+       			<h2>Zones</h2>
+		       <table>
+		            <thead>
+		               <tr>
+		                   <td></td>
+		                   <th>Min</th>
+		                   <th>Max</th>
+		               </tr>
+		           </thead>
+		           <tbody>
+		           </tbody>
+		       </table>
+		   </div>
+
+	       	<div id="anaerobicThreshold" class="hidden">
+	       		<h2>Anaerobic threshold</h2>
+	       		<p class="value"></p>
+			</div>
+		</div>
 
   </body>
 </html>
